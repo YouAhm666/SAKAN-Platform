@@ -28,7 +28,8 @@ const LOGO_AR_DARK = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA3AAAAFmCAYA
      terra-600   #754437  (primary interactive — Terra Queimada)
      terra-700   #5E362B  (primary hover, darker)
      terra-500   #9A6152  (primary lighter accent)
-     verde-600   #6B6751  (signal accent — ratings, active state, focus rings — Verde Opaco)
+     verde-600   #7C7340  (signal accent on light surfaces — ratings, active state, focus rings)
+     verde-tint  #D6CA85  (signal accent on dark surfaces — sidebar active rail, brandSub)
      areia-tint  #E9E4D5  (sidebar body text tint — Areia)
      paper       #F7F5F0  (app background, warm sand-white)
      line        #E5DFD1  (hairline borders, Areia-tinted)
@@ -468,7 +469,7 @@ function Sidebar({ view, setView, lang }) {
     <aside className="hidden lg:flex w-72 shrink-0 flex-col bg-[#28374A] text-[#E9E4D5]">
       <div className="flex flex-col items-start gap-2 px-6 py-6 border-b border-white/10">
         <img src={lang === "ar" ? LOGO_AR : LOGO_EN} alt={t.brand} className="h-9 w-auto" />
-        <p className="text-[11px] tracking-[0.14em] uppercase text-[#6B6751]">{t.brandSub}</p>
+        <p className="text-[11px] tracking-[0.14em] uppercase text-[#D6CA85]">{t.brandSub}</p>
       </div>
       <nav className="flex-1 px-3 py-5 space-y-1">
         {items.map((it) => {
@@ -481,7 +482,7 @@ function Sidebar({ view, setView, lang }) {
               className={`relative w-full flex items-center gap-3 rounded-lg px-3 py-3 text-sm text-start transition-colors
                 ${active ? "bg-white/10 text-white" : "text-[#A79C87] hover:bg-white/5 hover:text-white"}`}
             >
-              {active && <span className="absolute inset-y-1 start-0 w-1 rounded-full bg-[#6B6751]" />}
+              {active && <span className="absolute inset-y-1 start-0 w-1 rounded-full bg-[#D6CA85]" />}
               <Icon size={18} strokeWidth={2} className="shrink-0" />
               <span className="leading-tight">{it.label}</span>
             </button>
@@ -504,18 +505,18 @@ function Topbar({ lang, setLang }) {
         <Search size={16} className="absolute top-1/2 -translate-y-1/2 start-3 text-[#5B6472]" />
         <input
           placeholder={t.search}
-          className="w-full rounded-full border border-[#E5DFD1] bg-white ps-9 pe-4 py-2.5 text-sm text-[#1E2A38] placeholder:text-[#8993A0] outline-none focus:ring-2 focus:ring-[#6B6751]/40"
+          className="w-full rounded-full border border-[#E5DFD1] bg-white ps-9 pe-4 py-2.5 text-sm text-[#1E2A38] placeholder:text-[#8993A0] outline-none focus:ring-2 focus:ring-[#7C7340]/40"
         />
       </div>
       <div className="flex items-center gap-2">
         <button
           onClick={() => setLang(lang === "en" ? "ar" : "en")}
-          className="flex items-center gap-1.5 rounded-full border border-[#E5DFD1] bg-white px-3.5 py-2 text-xs font-medium text-[#1E2A38] hover:border-[#6B6751] transition-colors"
+          className="flex items-center gap-1.5 rounded-full border border-[#E5DFD1] bg-white px-3.5 py-2 text-xs font-medium text-[#1E2A38] hover:border-[#7C7340] transition-colors"
         >
           <Globe size={14} />
           {t.langToggle}
         </button>
-        <button className="relative grid h-9 w-9 place-items-center rounded-full border border-[#E5DFD1] bg-white hover:border-[#6B6751] transition-colors">
+        <button className="relative grid h-9 w-9 place-items-center rounded-full border border-[#E5DFD1] bg-white hover:border-[#7C7340] transition-colors">
           <Bell size={16} className="text-[#1E2A38]" />
           <span className="absolute top-1.5 end-1.5 h-2 w-2 rounded-full bg-[#FF6B35]" />
         </button>
@@ -583,7 +584,7 @@ function AlertBanner({ lang, dismissed, onDismiss }) {
   const msg = t.alerts.occDrop.replace("{p}", lang === "ar" ? "شاليه سيدر هيلز" : "Cedar Hills Chalet").replace("{n}", "18");
   return (
     <div className="flex items-start gap-3 rounded-xl border border-[#B7B29C] bg-[#E9E6DC] px-4 py-3.5">
-      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#6B6751] text-white">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#7C7340] text-white">
         <AlertTriangle size={15} />
       </div>
       <div className="flex-1">
@@ -606,7 +607,7 @@ function PerformanceChart() {
           <h3 className="font-display text-lg text-[#1E2A38]">{t.chart.title}</h3>
           <p className="text-xs text-[#5B6472] mt-0.5">{t.chart.sub}</p>
         </div>
-        <Sparkles size={16} className="text-[#6B6751]" />
+        <Sparkles size={16} className="text-[#7C7340]" />
       </div>
       <div className="h-72 mt-4">
         <ResponsiveContainer width="100%" height="100%">
@@ -618,7 +619,7 @@ function PerformanceChart() {
             <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #E5DFD1", fontSize: 12 }} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Bar yAxisId="left" dataKey="revenue" name={t.chart.revenue} fill="#754437" radius={[4, 4, 0, 0]} barSize={22} />
-            <Line yAxisId="right" type="monotone" dataKey="occupancy" name={t.chart.occupancy} stroke="#6B6751" strokeWidth={2.5} dot={{ r: 3, fill: "#6B6751" }} />
+            <Line yAxisId="right" type="monotone" dataKey="occupancy" name={t.chart.occupancy} stroke="#7C7340" strokeWidth={2.5} dot={{ r: 3, fill: "#7C7340" }} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -635,20 +636,20 @@ function OverviewView({ lang }) {
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <KpiCard icon={ClipboardList} label={t.kpi.totalBookings} value="214" trend={8} accent="bg-[#754437]" />
         <KpiCard icon={Users} label={t.kpi.activeGuests} value="86" trend={4} accent="bg-[#9A6152]" />
-        <KpiCard icon={DollarSign} label={t.kpi.grossRevenue} value={fmtMoney(383550, "AED", lang)} trend={12} accent="bg-[#6B6751]" />
+        <KpiCard icon={DollarSign} label={t.kpi.grossRevenue} value={fmtMoney(383550, "AED", lang)} trend={12} accent="bg-[#7C7340]" />
         <KpiCard icon={Wallet} label={t.kpi.heldCommission} value={fmtMoney(46020, "AED", lang)} trend={-3} accent="bg-[#6B7280]" />
       </div>
       <PerformanceChart />
       <div className="rounded-2xl border border-[#E5DFD1] bg-white shadow-[0_1px_2px_rgba(16,14,28,0.04)] p-5">
         <h3 className="font-display text-lg text-[#1E2A38] mb-3">{t.quick.title}</h3>
         <div className="grid sm:grid-cols-3 gap-3">
-          <button className="flex items-center gap-3 rounded-lg border border-[#E5DFD1] px-4 py-3.5 text-sm font-medium text-[#1E2A38] hover:border-[#6B6751] hover:bg-[#F3EFE6] transition-colors">
+          <button className="flex items-center gap-3 rounded-lg border border-[#E5DFD1] px-4 py-3.5 text-sm font-medium text-[#1E2A38] hover:border-[#7C7340] hover:bg-[#F3EFE6] transition-colors">
             <PlusCircle size={17} className="text-[#754437]" /> {t.quick.addProperty}
           </button>
-          <button className="flex items-center gap-3 rounded-lg border border-[#E5DFD1] px-4 py-3.5 text-sm font-medium text-[#1E2A38] hover:border-[#6B6751] hover:bg-[#F3EFE6] transition-colors">
+          <button className="flex items-center gap-3 rounded-lg border border-[#E5DFD1] px-4 py-3.5 text-sm font-medium text-[#1E2A38] hover:border-[#7C7340] hover:bg-[#F3EFE6] transition-colors">
             <SlidersHorizontal size={17} className="text-[#754437]" /> {t.quick.adjustPricing}
           </button>
-          <button className="flex items-center gap-3 rounded-lg border border-[#E5DFD1] px-4 py-3.5 text-sm font-medium text-[#1E2A38] hover:border-[#6B6751] hover:bg-[#F3EFE6] transition-colors">
+          <button className="flex items-center gap-3 rounded-lg border border-[#E5DFD1] px-4 py-3.5 text-sm font-medium text-[#1E2A38] hover:border-[#7C7340] hover:bg-[#F3EFE6] transition-colors">
             <CalendarClock size={17} className="text-[#754437]" /> {t.quick.manualBooking}
           </button>
         </div>
@@ -734,7 +735,7 @@ function BookingModal({ booking, onClose, lang, statuses, setStatus }) {
               key={s}
               onClick={() => setStatus(booking.unitId, s)}
               className={`rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors
-                ${currentStatus === s ? `${STATUS_STYLES[s].bg} ${STATUS_STYLES[s].text} border-transparent` : "border-[#E5DFD1] text-[#4F5866] hover:border-[#6B6751]"}`}
+                ${currentStatus === s ? `${STATUS_STYLES[s].bg} ${STATUS_STYLES[s].text} border-transparent` : "border-[#E5DFD1] text-[#4F5866] hover:border-[#7C7340]"}`}
             >
               {t.statusVerb[s]}
             </button>
@@ -914,7 +915,7 @@ function AvailabilityView({ lang }) {
 
       <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-[#E5DFD1] bg-white px-4 py-3">
         <span className="flex items-center gap-1.5 text-[11px] text-[#4F5866]">
-          <Zap size={12} className="text-[#6B6751]" /> <b className="text-[#1E2A38]">{t.availability.auto}:</b> {t.availability.autoDesc}
+          <Zap size={12} className="text-[#7C7340]" /> <b className="text-[#1E2A38]">{t.availability.auto}:</b> {t.availability.autoDesc}
         </span>
         <span className="flex items-center gap-1.5 text-[11px] text-[#4F5866]">
           <Hand size={12} className="text-[#754437]" /> <b className="text-[#1E2A38]">{t.availability.manual}:</b> {t.availability.manualDesc}
@@ -983,7 +984,7 @@ function Field({ label, children }) {
     </label>
   );
 }
-const inputCls = "w-full rounded-lg border border-[#E5DFD1] bg-white px-3.5 py-2.5 text-sm text-[#1E2A38] outline-none focus:ring-2 focus:ring-[#6B6751]/40 focus:border-[#6B6751]";
+const inputCls = "w-full rounded-lg border border-[#E5DFD1] bg-white px-3.5 py-2.5 text-sm text-[#1E2A38] outline-none focus:ring-2 focus:ring-[#7C7340]/40 focus:border-[#7C7340]";
 
 function SetupView({ lang }) {
   const t = useLang();
@@ -1095,13 +1096,13 @@ function SetupView({ lang }) {
         <div className="mt-6 grid sm:grid-cols-2 gap-4">
           <div>
             <span className="block text-xs font-medium text-[#4F5866] mb-1.5">{t.setup.logo}</span>
-            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5DFD1] py-6 text-[#8993A0] hover:border-[#6B6751] transition-colors cursor-pointer">
+            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5DFD1] py-6 text-[#8993A0] hover:border-[#7C7340] transition-colors cursor-pointer">
               <Upload size={16} /> <span className="text-xs">{t.setup.dropHint}</span>
             </div>
           </div>
           <div>
             <span className="block text-xs font-medium text-[#4F5866] mb-1.5">{t.setup.gallery}</span>
-            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5DFD1] py-6 text-[#8993A0] hover:border-[#6B6751] transition-colors cursor-pointer">
+            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5DFD1] py-6 text-[#8993A0] hover:border-[#7C7340] transition-colors cursor-pointer">
               <ImagePlus size={16} /> <span className="text-xs">{t.setup.dropHint}</span>
             </div>
           </div>
@@ -1249,7 +1250,7 @@ function StarRow({ rating }) {
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={13} className={i <= rating ? "fill-[#6B6751] text-[#6B6751]" : "text-[#E1DED4]"} />
+        <Star key={i} size={13} className={i <= rating ? "fill-[#7C7340] text-[#7C7340]" : "text-[#E1DED4]"} />
       ))}
     </div>
   );
@@ -1298,7 +1299,7 @@ function ReviewCard({ r, lang }) {
             onChange={(e) => setReplyText(e.target.value)}
             placeholder={t.reviews.yourReply}
             rows={2}
-            className="w-full rounded-lg border border-[#E5DFD1] px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#6B6751]/40"
+            className="w-full rounded-lg border border-[#E5DFD1] px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#7C7340]/40"
           />
           <button
             onClick={() => { if (replyText.trim()) { setSavedReply(replyText.trim()); setReplied(true); setReplying(false); } }}
