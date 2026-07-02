@@ -5,7 +5,7 @@ import {
   TrendingUp, TrendingDown, Upload, MapPin, Phone, Ruler, BedDouble, MoreVertical,
   MessageSquare, RefreshCw, CreditCard, FileText, ImagePlus, PlusCircle, SlidersHorizontal,
   ClipboardList, ShieldCheck, Wrench, Droplets, ArrowUpRight, ArrowDownRight, Coffee,
-  ShoppingBag, Waves, ExternalLink, KeyRound
+  ShoppingBag, Waves, ExternalLink, KeyRound, DoorOpen, DoorClosed, Zap, Hand
 } from "lucide-react";
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
@@ -39,10 +39,11 @@ import {
 const DICT = {
   en: {
     dir: "ltr",
-    brand: "Marasi", brandSub: "Host Operations",
+    brand: "SAKAN", brandSub: "Host Operations",
     nav: {
       overview: "Overview & Analytics",
       timeline: "Booking Timeline & Housekeeping",
+      availability: "Availability & Room Status",
       setup: "Property & Branding Setup",
       financials: "Financials & Channel Manager",
       reviews: "Ratings & Reviews",
@@ -148,6 +149,24 @@ const DICT = {
       replied: "Replied",
       viewedOn: "via",
     },
+    availability: {
+      title: "Availability Control",
+      sub: "Open or close any room, chalet, or entire property for booking — automatically or manually.",
+      mode: "Mode",
+      auto: "Automatic",
+      manual: "Manual",
+      autoDesc: "Follows housekeeping status — closes on its own during maintenance, reopens once marked clean.",
+      manualDesc: "You're in direct control of this listing, independent of housekeeping status.",
+      open: "Open for booking",
+      closed: "Closed to booking",
+      closedAuto: "Closed automatically — under maintenance",
+      closedManual: "Closed by host",
+      closeProperty: "Close entire property",
+      openProperty: "Reopen entire property",
+      unitsClosed: "{n} of {t} units closed",
+      allOpen: "All units open",
+      unitsCount: "{n} units",
+    },
     common: {
       unit: "Unit", perNight: "/ night", perMonth: "/ month", nights: "nights",
       showMore: "Show more", area: "Area",
@@ -155,10 +174,11 @@ const DICT = {
   },
   ar: {
     dir: "rtl",
-    brand: "مراسي", brandSub: "عمليات المضيف",
+    brand: "سكن", brandSub: "عمليات المضيف",
     nav: {
       overview: "نظرة عامة وتحليلات",
       timeline: "الجدول الزمني للحجوزات والتدبير المنزلي",
+      availability: "التوفر وحالة الغرف",
       setup: "إعداد العقار والهوية",
       financials: "الشؤون المالية وإدارة القنوات",
       reviews: "التقييمات والمراجعات",
@@ -264,6 +284,24 @@ const DICT = {
       replied: "تم الرد",
       viewedOn: "عبر",
     },
+    availability: {
+      title: "التحكم بالتوفر",
+      sub: "افتح أو أغلق أي غرفة أو شاليه أو عقار بالكامل أمام الحجز — تلقائياً أو يدوياً.",
+      mode: "الوضع",
+      auto: "تلقائي",
+      manual: "يدوي",
+      autoDesc: "يتبع حالة التدبير المنزلي — يُغلق تلقائياً أثناء الصيانة، ويعاد فتحه فور التمييز كنظيفة.",
+      manualDesc: "أنت تتحكم بهذا الإعلان مباشرة، بغض النظر عن حالة التدبير المنزلي.",
+      open: "متاح للحجز",
+      closed: "مغلق أمام الحجز",
+      closedAuto: "مغلق تلقائياً — قيد الصيانة",
+      closedManual: "مغلق من قبل المضيف",
+      closeProperty: "إغلاق العقار بالكامل",
+      openProperty: "إعادة فتح العقار بالكامل",
+      unitsClosed: "{n} من {t} وحدات مغلقة",
+      allOpen: "جميع الوحدات متاحة",
+      unitsCount: "{n} وحدات",
+    },
     common: {
       unit: "وحدة", perNight: "/ ليلة", perMonth: "/ شهر", nights: "ليالٍ",
       showMore: "عرض المزيد", area: "المساحة",
@@ -282,8 +320,8 @@ const SPECIALTY_AR = { "Studio Room": "غرفة استوديو", "Connecting/Adj
 
 /* ------------------------------ mock dataset ------------------------------ */
 const PROPERTIES = [
-  { id: "P-101", name: "Marasi Bay Hotel — Room 412", nameAr: "فندق مراسي باي — غرفة 412", type: "Hotel", tier: "Executive Suite", occupancy: "Double-Double (Queen-Queen)", specialty: null, area: 62, location: "Jumeirah Coast, Dubai", host: "Layla Haddad", phone: "+971 50 213 8842", status: "clean", residency: "short", price: 1450, currency: "AED", image: "hotel" },
-  { id: "P-102", name: "Marasi Bay Hotel — Room 118", nameAr: "فندق مراسي باي — غرفة 118", type: "Hotel", tier: "Standard Room", occupancy: "Twin Room", specialty: null, area: 28, location: "Jumeirah Coast, Dubai", host: "Layla Haddad", phone: "+971 50 213 8842", status: "dirty", residency: "short", price: 420, currency: "AED", image: "hotel" },
+  { id: "P-101", name: "Sakan Bay Hotel — Room 412", nameAr: "فندق سكن باي — غرفة 412", type: "Hotel", tier: "Executive Suite", occupancy: "Double-Double (Queen-Queen)", specialty: null, area: 62, location: "Jumeirah Coast, Dubai", host: "Layla Haddad", phone: "+971 50 213 8842", status: "clean", residency: "short", price: 1450, currency: "AED", image: "hotel" },
+  { id: "P-102", name: "Sakan Bay Hotel — Room 118", nameAr: "فندق سكن باي — غرفة 118", type: "Hotel", tier: "Standard Room", occupancy: "Twin Room", specialty: null, area: 28, location: "Jumeirah Coast, Dubai", host: "Layla Haddad", phone: "+971 50 213 8842", status: "dirty", residency: "short", price: 420, currency: "AED", image: "hotel" },
   { id: "P-203", name: "Cedar Hills Chalet", nameAr: "شاليه سيدر هيلز", type: "Chalet", tier: "Junior Suite", occupancy: "Double Room", specialty: "Villa/Bungalow", area: 145, location: "Faraya, Mount Lebanon", host: "Karim Fakhoury", phone: "+961 3 445 210", status: "maintenance", residency: "short", price: 220, currency: "USD", image: "chalet" },
   { id: "P-304", name: "Old Town Hostel — Bunk Bay", nameAr: "نُزل البلدة القديمة — الرواق", type: "Hostel", tier: "Standard Room", occupancy: "Triple/Quad Room", specialty: "Studio Room", area: 34, location: "Balat, Istanbul", host: "Mert Aydın", phone: "+90 532 118 4477", status: "clean", residency: "short", price: 38, currency: "USD", image: "hostel" },
   { id: "P-405", name: "Palm Villa Residence 7", nameAr: "فيلا النخيل — وحدة 7", type: "Villa", tier: "Presidential/Penthouse Suite", occupancy: "Double-Double (Queen-Queen)", specialty: "Villa/Bungalow", area: 410, location: "Palm Jumeirah, Dubai", host: "Sara Al Mansoori", phone: "+971 55 902 1187", status: "clean", residency: "long", price: 28500, currency: "AED", image: "villa" },
@@ -337,7 +375,7 @@ const BOOKINGS = [
 ];
 
 const LEDGER = [
-  { id: "L-01", property: "Marasi Bay Hotel", amount: 38940, date: "2026-06-24", status: "paid" },
+  { id: "L-01", property: "Sakan Bay Hotel", amount: 38940, date: "2026-06-24", status: "paid" },
   { id: "L-02", property: "Palm Villa Residence 7", amount: 27075, date: "2026-06-25", status: "paid" },
   { id: "L-03", property: "Cedar Hills Chalet", amount: 6120, date: "2026-06-29", status: "pending" },
 ];
@@ -348,11 +386,11 @@ const INVOICES = [
 ];
 
 const REVIEWS = [
-  { id: "R-1", guest: "Adrian Vance", guestAr: "أدريان فانس", property: "Marasi Bay Hotel", rating: 5, channel: "Booking.com",
+  { id: "R-1", guest: "Adrian Vance", guestAr: "أدريان فانس", property: "Sakan Bay Hotel", rating: 5, channel: "Booking.com",
     text: "Impeccable service and the room was spotless on arrival. The spa credit was a lovely touch.",
     textAr: "خدمة لا تشوبها شائبة والغرفة كانت نظيفة تماماً عند الوصول. رصيد السبا كان لمسة رائعة.",
     date: "2026-06-20", replied: false },
-  { id: "R-2", guest: "Priya Nair", guestAr: "بريا ناير", property: "Marasi Bay Hotel", rating: 3, channel: "Direct",
+  { id: "R-2", guest: "Priya Nair", guestAr: "بريا ناير", property: "Sakan Bay Hotel", rating: 3, channel: "Direct",
     text: "Good location but housekeeping was late on day two and the gift shop was overpriced.",
     textAr: "الموقع جيد لكن التدبير المنزلي تأخر في اليوم الثاني وأسعار متجر الهدايا مرتفعة.",
     date: "2026-06-22", replied: true, reply: "Thank you for the honest feedback — we've retrained the turnover team for faster same-day service." },
@@ -411,6 +449,7 @@ function Sidebar({ view, setView }) {
   const items = [
     { key: "overview", label: t.nav.overview, icon: LayoutDashboard },
     { key: "timeline", label: t.nav.timeline, icon: CalendarClock },
+    { key: "availability", label: t.nav.availability, icon: DoorOpen },
     { key: "setup", label: t.nav.setup, icon: Building2 },
     { key: "financials", label: t.nav.financials, icon: Wallet },
     { key: "reviews", label: t.nav.reviews, icon: Star },
@@ -488,6 +527,7 @@ function MobileNav({ view, setView }) {
   const items = [
     { key: "overview", icon: LayoutDashboard },
     { key: "timeline", icon: CalendarClock },
+    { key: "availability", icon: DoorOpen },
     { key: "setup", icon: Building2 },
     { key: "financials", icon: Wallet },
     { key: "reviews", icon: Star },
@@ -772,6 +812,162 @@ function TimelineView({ lang }) {
   );
 }
 
+/* ------------------------------ Availability ------------------------------ */
+function Switch({ on, onClick, disabled }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${disabled ? "opacity-40 cursor-not-allowed" : ""} ${on ? "bg-[#5B3BFF]" : "bg-[#D8D5E8]"}`}
+    >
+      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[22px] rtl:-translate-x-[22px]" : "translate-x-0.5 rtl:-translate-x-0.5"}`} />
+    </button>
+  );
+}
+
+function AvailabilityRow({ p, lang, mode, setMode, manualOpen, toggleManual, housekeeping }) {
+  const t = useLang();
+  const isOpen = mode === "auto" ? housekeeping !== "maintenance" : manualOpen;
+  const closedReason = mode === "auto" ? t.availability.closedAuto : t.availability.closedManual;
+  const rawName = lang === "ar" ? p.nameAr : p.name;
+  const unitName = (rawName.includes("—") ? rawName.split("—")[1] : rawName).trim();
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 rounded-lg border border-[#E7E4F2] px-4 py-3.5">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-[#15121F] truncate">{unitName}</p>
+        <div className="mt-1 flex items-center gap-2 flex-wrap">
+          <StatusBadge status={housekeeping} />
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${isOpen ? "bg-[#E3FBEF] text-[#0F9D58]" : "bg-[#FFE9DE] text-[#E8590C]"}`}>
+            {isOpen ? <DoorOpen size={11} strokeWidth={2.3} /> : <DoorClosed size={11} strokeWidth={2.3} />}
+            {isOpen ? t.availability.open : closedReason}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 shrink-0">
+        <div className="flex rounded-lg border border-[#E7E4F2] p-1 bg-[#F7F6FC]">
+          <button
+            onClick={() => setMode("auto")}
+            className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${mode === "auto" ? "bg-[#5B3BFF] text-white" : "text-[#5B5770]"}`}
+          >
+            <Zap size={12} /> {t.availability.auto}
+          </button>
+          <button
+            onClick={() => setMode("manual")}
+            className={`flex items-center gap-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${mode === "manual" ? "bg-[#5B3BFF] text-white" : "text-[#5B5770]"}`}
+          >
+            <Hand size={12} /> {t.availability.manual}
+          </button>
+        </div>
+        <Switch on={isOpen} disabled={mode === "auto"} onClick={toggleManual} />
+      </div>
+    </div>
+  );
+}
+
+function AvailabilityView({ lang }) {
+  const t = useLang();
+  const [modes, setModes] = useState(() => Object.fromEntries(PROPERTIES.map((p) => [p.id, "auto"])));
+  const [manualOpen, setManualOpen] = useState(() => Object.fromEntries(PROPERTIES.map((p) => [p.id, true])));
+  const housekeeping = useMemo(() => Object.fromEntries(PROPERTIES.map((p) => [p.id, p.status])), []);
+
+  const setMode = (id, m) => setModes((prev) => ({ ...prev, [id]: m }));
+  const toggleManual = (id) => setManualOpen((prev) => ({ ...prev, [id]: !prev[id] }));
+  const isUnitOpen = (p) => (modes[p.id] === "auto" ? housekeeping[p.id] !== "maintenance" : manualOpen[p.id]);
+
+  const groups = useMemo(() => {
+    const map = new Map();
+    PROPERTIES.forEach((p) => {
+      const key = p.name.includes("—") ? p.name.split("—")[0].trim() : p.name;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key).push(p);
+    });
+    return Array.from(map.entries());
+  }, []);
+
+  const setGroup = (units, open) => {
+    setModes((prev) => {
+      const next = { ...prev };
+      units.forEach((u) => { next[u.id] = "manual"; });
+      return next;
+    });
+    setManualOpen((prev) => {
+      const next = { ...prev };
+      units.forEach((u) => { next[u.id] = open; });
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-display text-xl text-[#15121F]">{t.availability.title}</h2>
+        <p className="text-xs text-[#706C85] mt-0.5">{t.availability.sub}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-[#E7E4F2] bg-white px-4 py-3">
+        <span className="flex items-center gap-1.5 text-[11px] text-[#5B5770]">
+          <Zap size={12} className="text-[#F5A200]" /> <b className="text-[#15121F]">{t.availability.auto}:</b> {t.availability.autoDesc}
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] text-[#5B5770]">
+          <Hand size={12} className="text-[#5B3BFF]" /> <b className="text-[#15121F]">{t.availability.manual}:</b> {t.availability.manualDesc}
+        </span>
+      </div>
+
+      <div className="space-y-4">
+        {groups.map(([key, units]) => {
+          const openCount = units.filter(isUnitOpen).length;
+          const allOpen = openCount === units.length;
+          const rawGroupLabel = lang === "ar" ? units[0].nameAr : key;
+          const groupLabel = (lang === "ar" && rawGroupLabel.includes("—") ? rawGroupLabel.split("—")[0] : rawGroupLabel).trim();
+          return (
+            <div key={key} className="rounded-2xl border border-[#E7E4F2] bg-white shadow-[0_1px_2px_rgba(16,14,28,0.04)] p-5">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <h3 className="font-display text-base text-[#15121F]">{groupLabel}</h3>
+                  {units.length > 1 && (
+                    <p className="text-[11px] text-[#706C85] mt-0.5">
+                      {allOpen ? t.availability.allOpen : t.availability.unitsClosed.replace("{n}", units.length - openCount).replace("{t}", units.length)}
+                    </p>
+                  )}
+                </div>
+                {units.length > 1 && (
+                  <button
+                    onClick={() => setGroup(units, !allOpen)}
+                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-medium transition-colors ${
+                      allOpen
+                        ? "border-[#FFD98A] text-[#B8710A] hover:bg-[#FFF3D9]"
+                        : "border-[#E7E4F2] text-[#5B3BFF] hover:bg-[#F1EEFF]"
+                    }`}
+                  >
+                    {allOpen ? <DoorClosed size={14} /> : <DoorOpen size={14} />}
+                    {allOpen ? t.availability.closeProperty : t.availability.openProperty}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-2.5">
+                {units.map((p) => (
+                  <AvailabilityRow
+                    key={p.id}
+                    p={p}
+                    lang={lang}
+                    mode={modes[p.id]}
+                    setMode={(m) => setMode(p.id, m)}
+                    manualOpen={manualOpen[p.id]}
+                    toggleManual={() => toggleManual(p.id)}
+                    housekeeping={housekeeping[p.id]}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* --------------------------------- View 3 --------------------------------- */
 function Field({ label, children }) {
   return (
@@ -799,7 +995,7 @@ function SetupView({ lang }) {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label={t.setup.name}>
-            <input className={inputCls} placeholder="Marasi Bay Hotel — Room 512" />
+            <input className={inputCls} placeholder="Sakan Bay Hotel — Room 512" />
           </Field>
           <Field label={t.setup.propertyType}>
             <select className={inputCls} value={propType} onChange={(e) => setPropType(e.target.value)}>
@@ -1156,6 +1352,7 @@ export default function App() {
   const views = {
     overview: <OverviewView lang={lang} />,
     timeline: <TimelineView lang={lang} />,
+    availability: <AvailabilityView lang={lang} />,
     setup: <SetupView lang={lang} />,
     financials: <FinancialsView lang={lang} />,
     reviews: <ReviewsView lang={lang} />,
