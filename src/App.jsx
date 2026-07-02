@@ -464,7 +464,7 @@ function Sidebar({ view, setView, lang }) {
   ];
   return (
     <aside className="hidden lg:flex w-72 shrink-0 flex-col bg-[#15122A] text-[#E7E3FF]">
-      <div className="flex flex-col gap-2 px-6 py-6 border-b border-white/10">
+      <div className="flex flex-col items-start gap-2 px-6 py-6 border-b border-white/10">
         <img src={lang === "ar" ? LOGO_AR : LOGO_EN} alt={t.brand} className="h-9 w-auto" />
         <p className="text-[11px] tracking-[0.14em] uppercase text-[#F5A200]">{t.brandSub}</p>
       </div>
@@ -822,9 +822,9 @@ function Switch({ on, onClick, disabled }) {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${disabled ? "opacity-40 cursor-not-allowed" : ""} ${on ? "bg-[#5B3BFF]" : "bg-[#D8D5E8]"}`}
+      className={`relative h-6 w-11 shrink-0 overflow-hidden rounded-full transition-colors ${disabled ? "opacity-40 cursor-not-allowed" : ""} ${on ? "bg-[#5B3BFF]" : "bg-[#D8D5E8]"}`}
     >
-      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[22px] rtl:-translate-x-[22px]" : "translate-x-0.5 rtl:-translate-x-0.5"}`} />
+      <span className={`absolute top-0.5 start-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[20px] rtl:-translate-x-[20px]" : "translate-x-0"}`} />
     </button>
   );
 }
@@ -1155,9 +1155,9 @@ function ChannelCard({ ch, lang, connected, toggle }) {
         </div>
         <button
           onClick={() => toggle(ch.id)}
-          className={`relative h-6 w-11 rounded-full transition-colors ${on ? "bg-[#5B3BFF]" : "bg-[#D8D5E8]"}`}
+          className={`relative h-6 w-11 shrink-0 overflow-hidden rounded-full transition-colors ${on ? "bg-[#5B3BFF]" : "bg-[#D8D5E8]"}`}
         >
-          <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[22px] rtl:-translate-x-[22px]" : "translate-x-0.5 rtl:-translate-x-0.5"}`} />
+          <span className={`absolute top-0.5 start-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${on ? "translate-x-[20px] rtl:-translate-x-[20px]" : "translate-x-0"}`} />
         </button>
       </div>
     </div>
