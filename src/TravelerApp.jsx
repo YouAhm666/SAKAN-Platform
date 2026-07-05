@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect, createContext, useContext } from "react";
 import {
-  Search, Heart, MapPin, Star, Users, Calendar, X, Check, ChevronRight, ChevronLeft,
+  Search, Heart, MapPin, Star, Users, Calendar, X, Check, ChevronRight, ChevronLeft, ChevronUp,
   Building2, Home as HomeIcon, Waves, Wifi, Coffee, ShieldCheck, LogIn, User, Minus, Plus,
   Globe, BedDouble, SlidersHorizontal, Car, Snowflake, ChefHat, MessageCircle, Navigation,
-  PencilLine, Clock, CheckCircle2, XCircle, Sparkles, Bath, Ruler
+  PencilLine, Clock, CheckCircle2, XCircle, Sparkles, Bath, Ruler, Moon, CalendarRange
 } from "lucide-react";
 import { LOGO_EN_DARK, LOGO_AR_DARK, LOGO_EN, LOGO_AR } from "./brand.js";
+import { supabase } from "./supabaseClient.js";
 
 /* ============================================================================
    TRAVELER APP — guest-facing storefront where travelers search & book stays.
@@ -23,11 +24,14 @@ const DICT = {
     search: {
       where: "Where to?", checkIn: "Check-in", checkOut: "Check-out", guests: "Guests",
       guestsUnit: "guests", search: "Search", filters: "Filters",
+      shortTerm: "Short-term", longTerm: "Long-term",
+      moveIn: "Move-in date", leaseLength: "Lease length", months: "months",
+      summaryPlaceholder: "Anywhere · Add dates · Add guests",
     },
     categories: { all: "All", apartment: "Apartments", hotel: "Hotel Rooms", suite: "Luxury Suites", villa: "Villas", chalet: "Chalets" },
-    card: { night: "night", reviews: "reviews" },
+    card: { night: "night", month: "month", reviews: "reviews" },
     filters: {
-      title: "Filters", priceRange: "Price range", perNight: "per night",
+      title: "Filters", priceRange: "Price range", perNight: "per night", perMonth: "per month",
       propertyType: "Property type", entire: "Entire place", private: "Private room", shared: "Shared room",
       amenities: "Amenities", clear: "Clear all", show: "Show", stays: "stays",
       wifi: "Wi-Fi", ac: "Air conditioning", parking: "Parking", pool: "Pool", kitchen: "Kitchen",
@@ -67,11 +71,14 @@ const DICT = {
     search: {
       where: "إلى أين تذهب؟", checkIn: "تسجيل الوصول", checkOut: "تسجيل المغادرة", guests: "الضيوف",
       guestsUnit: "ضيوف", search: "بحث", filters: "الفلاتر",
+      shortTerm: "إقامة قصيرة", longTerm: "إقامة طويلة",
+      moveIn: "تاريخ الانتقال", leaseLength: "مدة الإيجار", months: "أشهر",
+      summaryPlaceholder: "أي مكان · أضف التواريخ · أضف الضيوف",
     },
     categories: { all: "الكل", apartment: "شقق", hotel: "غرف فندقية", suite: "أجنحة فاخرة", villa: "فلل", chalet: "شاليهات" },
-    card: { night: "الليلة", reviews: "تقييم" },
+    card: { night: "الليلة", month: "الشهر", reviews: "تقييم" },
     filters: {
-      title: "الفلاتر", priceRange: "نطاق السعر", perNight: "لليلة",
+      title: "الفلاتر", priceRange: "نطاق السعر", perNight: "لليلة", perMonth: "شهريًا",
       propertyType: "نوع العقار", entire: "المكان بالكامل", private: "غرفة خاصة", shared: "غرفة مشتركة",
       amenities: "المرافق", clear: "مسح الكل", show: "عرض", stays: "إقامة",
       wifi: "واي فاي", ac: "تكييف", parking: "موقف سيارات", pool: "مسبح", kitchen: "مطبخ",
@@ -114,12 +121,12 @@ const AMENITY_META = { wifi: Wifi, ac: Snowflake, parking: Car, pool: Waves, kit
 const CATEGORY_ICONS = { all: Sparkles, apartment: Building2, hotel: BedDouble, suite: Star, villa: HomeIcon, chalet: Waves };
 
 const LISTINGS = [
-  { id: "P1", name: "Sakan Bay Hotel — Deluxe Room", nameAr: "فندق سكن باي — غرفة ديلوكس", location: "Jeddah Corniche", locationAr: "كورنيش جدة", type: "hotel", price: 620, rating: 4.9, reviews: 214, maxGuests: 2, bedrooms: 1, bathrooms: 1, sqm: 32, amenities: ["wifi", "ac", "pool"], grad: "from-[#754437] to-[#5E362B]", host: { name: "Layla", joined: 2021 }, desc: "A modern deluxe room overlooking the Red Sea, steps from the Corniche promenade. Bright, quiet, and freshly renovated.", scores: { cleanliness: 4.9, communication: 5.0, location: 4.8, value: 4.6 } },
-  { id: "P2", name: "Marina Chalet", nameAr: "شاليه المارينا", location: "Half Moon Bay", locationAr: "خليج نصف القمر", type: "chalet", price: 950, rating: 4.8, reviews: 132, maxGuests: 6, bedrooms: 2, bathrooms: 2, sqm: 110, amenities: ["wifi", "pool", "parking", "kitchen"], grad: "from-[#28374A] to-[#1E2A38]", host: { name: "Omar", joined: 2020 }, desc: "A private beachfront chalet with a shared pool, perfect for families. Direct beach access and a fully equipped kitchen.", scores: { cleanliness: 4.7, communication: 4.9, location: 5.0, value: 4.5 } },
-  { id: "P3", name: "Sakan Bay Hotel — Suite", nameAr: "فندق سكن باي — جناح", location: "Jeddah Corniche", locationAr: "كورنيش جدة", type: "suite", price: 1290, rating: 4.7, reviews: 98, maxGuests: 3, bedrooms: 1, bathrooms: 1, sqm: 58, amenities: ["wifi", "ac"], grad: "from-[#9A6152] to-[#754437]", host: { name: "Layla", joined: 2021 }, desc: "Our signature suite with a separate living area and panoramic sea views. Includes daily housekeeping.", scores: { cleanliness: 4.8, communication: 4.9, location: 4.7, value: 4.3 } },
-  { id: "P4", name: "Diriyah Garden Apartment", nameAr: "شقة حدائق الدرعية", location: "Diriyah, Riyadh", locationAr: "الدرعية، الرياض", type: "apartment", price: 410, rating: 4.6, reviews: 76, maxGuests: 4, bedrooms: 2, bathrooms: 1, sqm: 85, amenities: ["wifi", "kitchen", "parking", "ac"], grad: "from-[#7C7340] to-[#5E5730]", host: { name: "Sara", joined: 2022 }, desc: "A quiet garden-level apartment minutes from Bujairi Terrace, with a private courtyard and full kitchen.", scores: { cleanliness: 4.6, communication: 4.7, location: 4.8, value: 4.6 } },
-  { id: "P5", name: "Al Ula Desert Villa", nameAr: "فيلا صحراء العلا", location: "AlUla", locationAr: "العلا", type: "villa", price: 2400, rating: 5.0, reviews: 44, maxGuests: 8, bedrooms: 4, bathrooms: 3, sqm: 320, amenities: ["wifi", "pool", "parking", "kitchen", "ac"], grad: "from-[#5B6472] to-[#28374A]", host: { name: "Fahad", joined: 2019 }, desc: "A secluded desert villa with a private plunge pool and uninterrupted views of the sandstone canyons.", scores: { cleanliness: 5.0, communication: 5.0, location: 4.9, value: 4.8 } },
-  { id: "P6", name: "Riyadh Skyline Apartment", nameAr: "شقة أفق الرياض", location: "King Abdullah Financial District", locationAr: "حي الملك عبدالله المالي", type: "apartment", price: 530, rating: 4.7, reviews: 89, maxGuests: 3, bedrooms: 1, bathrooms: 1, sqm: 62, amenities: ["wifi", "kitchen", "ac"], grad: "from-[#8993A0] to-[#5B6472]", host: { name: "Nora", joined: 2023 }, desc: "A sleek high-rise apartment with skyline views, walking distance to KAFD metro station.", scores: { cleanliness: 4.7, communication: 4.6, location: 4.9, value: 4.5 } },
+  { id: "P1", name: "Sakan Bay Hotel — Deluxe Room", nameAr: "فندق سكن باي — غرفة ديلوكس", location: "Jeddah Corniche", locationAr: "كورنيش جدة", type: "hotel", price: 620, rating: 4.9, reviews: 214, maxGuests: 2, bedrooms: 1, bathrooms: 1, sqm: 32, amenities: ["wifi", "ac", "pool"], grad: "from-[#754437] to-[#5E362B]", host: { name: "Layla", joined: 2021 }, desc: "A modern deluxe room overlooking the Red Sea, steps from the Corniche promenade. Bright, quiet, and freshly renovated.", scores: { cleanliness: 4.9, communication: 5.0, location: 4.8, value: 4.6 }, longTerm: false },
+  { id: "P2", name: "Marina Chalet", nameAr: "شاليه المارينا", location: "Half Moon Bay", locationAr: "خليج نصف القمر", type: "chalet", price: 950, rating: 4.8, reviews: 132, maxGuests: 6, bedrooms: 2, bathrooms: 2, sqm: 110, amenities: ["wifi", "pool", "parking", "kitchen"], grad: "from-[#28374A] to-[#1E2A38]", host: { name: "Omar", joined: 2020 }, desc: "A private beachfront chalet with a shared pool, perfect for families. Direct beach access and a fully equipped kitchen.", scores: { cleanliness: 4.7, communication: 4.9, location: 5.0, value: 4.5 }, longTerm: true, monthlyPrice: 12000 },
+  { id: "P3", name: "Sakan Bay Hotel — Suite", nameAr: "فندق سكن باي — جناح", location: "Jeddah Corniche", locationAr: "كورنيش جدة", type: "suite", price: 1290, rating: 4.7, reviews: 98, maxGuests: 3, bedrooms: 1, bathrooms: 1, sqm: 58, amenities: ["wifi", "ac"], grad: "from-[#9A6152] to-[#754437]", host: { name: "Layla", joined: 2021 }, desc: "Our signature suite with a separate living area and panoramic sea views. Includes daily housekeeping.", scores: { cleanliness: 4.8, communication: 4.9, location: 4.7, value: 4.3 }, longTerm: false },
+  { id: "P4", name: "Diriyah Garden Apartment", nameAr: "شقة حدائق الدرعية", location: "Diriyah, Riyadh", locationAr: "الدرعية، الرياض", type: "apartment", price: 410, rating: 4.6, reviews: 76, maxGuests: 4, bedrooms: 2, bathrooms: 1, sqm: 85, amenities: ["wifi", "kitchen", "parking", "ac"], grad: "from-[#7C7340] to-[#5E5730]", host: { name: "Sara", joined: 2022 }, desc: "A quiet garden-level apartment minutes from Bujairi Terrace, with a private courtyard and full kitchen.", scores: { cleanliness: 4.6, communication: 4.7, location: 4.8, value: 4.6 }, longTerm: true, monthlyPrice: 6500 },
+  { id: "P5", name: "Al Ula Desert Villa", nameAr: "فيلا صحراء العلا", location: "AlUla", locationAr: "العلا", type: "villa", price: 2400, rating: 5.0, reviews: 44, maxGuests: 8, bedrooms: 4, bathrooms: 3, sqm: 320, amenities: ["wifi", "pool", "parking", "kitchen", "ac"], grad: "from-[#5B6472] to-[#28374A]", host: { name: "Fahad", joined: 2019 }, desc: "A secluded desert villa with a private plunge pool and uninterrupted views of the sandstone canyons.", scores: { cleanliness: 5.0, communication: 5.0, location: 4.9, value: 4.8 }, longTerm: true, monthlyPrice: 28000 },
+  { id: "P6", name: "Riyadh Skyline Apartment", nameAr: "شقة أفق الرياض", location: "King Abdullah Financial District", locationAr: "حي الملك عبدالله المالي", type: "apartment", price: 530, rating: 4.7, reviews: 89, maxGuests: 3, bedrooms: 1, bathrooms: 1, sqm: 62, amenities: ["wifi", "kitchen", "ac"], grad: "from-[#8993A0] to-[#5B6472]", host: { name: "Nora", joined: 2023 }, desc: "A sleek high-rise apartment with skyline views, walking distance to KAFD metro station.", scores: { cleanliness: 4.7, communication: 4.6, location: 4.9, value: 4.5 }, longTerm: true, monthlyPrice: 8200 },
 ];
 
 /* ------------------------------- helpers --------------------------------- */
@@ -227,50 +234,139 @@ function Header({ lang, setLang, view, setView, wishlistCount, signedIn, onSignI
 }
 
 /* -------------------------------- Search bar -------------------------------- */
-function SearchBar({ query, setQuery, checkIn, setCheckIn, checkOut, setCheckOut, guests, setGuests, onOpenFilters }) {
+function SearchBar({
+  residencyType, setResidencyType, query, setQuery, checkIn, setCheckIn, checkOut, setCheckOut,
+  moveIn, setMoveIn, leaseMonths, setLeaseMonths, guests, setGuests, onOpenFilters,
+}) {
   const t = useLang();
+  const [expanded, setExpanded] = useState(false);
+
+  const summary = useMemo(() => {
+    const parts = [];
+    parts.push(query || (t.categories.all && t.search.where));
+    if (residencyType === "short") {
+      parts.push(checkIn && checkOut ? `${checkIn} → ${checkOut}` : null);
+    } else {
+      parts.push(moveIn ? moveIn : null);
+    }
+    parts.push(`${guests} ${t.search.guestsUnit}`);
+    return parts.filter(Boolean).join(" · ");
+  }, [query, checkIn, checkOut, moveIn, guests, residencyType, t]);
+
+  if (!expanded) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 sm:px-8 mt-6">
+        <button
+          onClick={() => setExpanded(true)}
+          className="w-full flex items-center gap-3 rounded-full border border-[#E5DFD1] bg-white shadow-sm px-5 py-3 text-start hover:shadow-md transition-shadow"
+        >
+          <Search size={16} className="text-[#754437] shrink-0" />
+          <span className="flex-1 text-[13.5px] text-[#1E2A38] truncate">{summary || t.search.summaryPlaceholder}</span>
+          <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F3EFE6] text-[#754437] text-[11px] font-semibold px-2.5 py-1 shrink-0">
+            {residencyType === "short" ? t.search.shortTerm : t.search.longTerm}
+          </span>
+          <span
+            onClick={(e) => { e.stopPropagation(); onOpenFilters(); }}
+            className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#E5DFD1]"
+          >
+            <SlidersHorizontal size={13} className="text-[#5B6472]" />
+          </span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-8 mt-6">
-      <div className="flex flex-col sm:flex-row rounded-2xl border border-[#E5DFD1] bg-white shadow-sm overflow-hidden">
-        <div className="flex-1 px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1]">
-          <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.where}</label>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Search size={14} className="text-[#8993A0]" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search.where}
-              className="flex-1 bg-transparent outline-none text-sm text-[#1E2A38] placeholder:text-[#8993A0]" />
+      <div className="rounded-2xl border border-[#E5DFD1] bg-white shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-4 pt-3.5">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setResidencyType("short")}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${residencyType === "short" ? "bg-[#1E2A38] text-white" : "bg-[#F7F5F0] text-[#5B6472]"}`}
+            >
+              <Moon size={13} /> {t.search.shortTerm}
+            </button>
+            <button
+              onClick={() => setResidencyType("long")}
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors ${residencyType === "long" ? "bg-[#1E2A38] text-white" : "bg-[#F7F5F0] text-[#5B6472]"}`}
+            >
+              <CalendarRange size={13} /> {t.search.longTerm}
+            </button>
           </div>
+          <button onClick={() => setExpanded(false)} className="grid h-7 w-7 place-items-center rounded-full hover:bg-[#F7F5F0]">
+            <ChevronUp size={16} className="text-[#5B6472]" />
+          </button>
         </div>
-        <div className="px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1] min-w-[130px]">
-          <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.checkIn}</label>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Calendar size={14} className="text-[#8993A0]" />
-            <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="bg-transparent outline-none text-xs text-[#1E2A38] w-full" />
-          </div>
-        </div>
-        <div className="px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1] min-w-[130px]">
-          <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.checkOut}</label>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Calendar size={14} className="text-[#8993A0]" />
-            <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="bg-transparent outline-none text-xs text-[#1E2A38] w-full" />
-          </div>
-        </div>
-        <div className="px-4 py-2.5 min-w-[120px]">
-          <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.guests}</label>
-          <div className="flex items-center justify-between mt-0.5">
-            <span className="flex items-center gap-1 text-sm text-[#1E2A38]"><Users size={14} className="text-[#8993A0]" /> {guests}</span>
-            <div className="flex gap-1">
-              <button onClick={() => setGuests(Math.max(1, guests - 1))} className="grid h-5 w-5 place-items-center rounded-full border border-[#E5DFD1]"><Minus size={10} /></button>
-              <button onClick={() => setGuests(guests + 1)} className="grid h-5 w-5 place-items-center rounded-full border border-[#E5DFD1]"><Plus size={10} /></button>
+
+        <div className="flex flex-col sm:flex-row mt-1">
+          <div className="flex-1 px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1]">
+            <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.where}</label>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Search size={14} className="text-[#8993A0]" />
+              <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search.where}
+                className="flex-1 bg-transparent outline-none text-sm text-[#1E2A38] placeholder:text-[#8993A0]" />
             </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2 p-2.5">
-          <button onClick={onOpenFilters} className="flex items-center gap-1.5 rounded-xl bg-[#F7F5F0] border border-[#E5DFD1] px-3.5 py-2.5 text-[13px] font-medium text-[#1E2A38] whitespace-nowrap">
-            <SlidersHorizontal size={14} /> {t.search.filters}
-          </button>
-          <PrimaryButton className="rounded-xl whitespace-nowrap flex items-center gap-1.5">
-            <Search size={14} /> {t.search.search}
-          </PrimaryButton>
+
+          {residencyType === "short" ? (
+            <>
+              <div className="px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1] min-w-[130px]">
+                <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.checkIn}</label>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Calendar size={14} className="text-[#8993A0]" />
+                  <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="bg-transparent outline-none text-xs text-[#1E2A38] w-full" />
+                </div>
+              </div>
+              <div className="px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1] min-w-[130px]">
+                <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.checkOut}</label>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Calendar size={14} className="text-[#8993A0]" />
+                  <input type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className="bg-transparent outline-none text-xs text-[#1E2A38] w-full" />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1] min-w-[140px]">
+                <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.moveIn}</label>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Calendar size={14} className="text-[#8993A0]" />
+                  <input type="date" value={moveIn} onChange={(e) => setMoveIn(e.target.value)} className="bg-transparent outline-none text-xs text-[#1E2A38] w-full" />
+                </div>
+              </div>
+              <div className="px-4 py-2.5 border-b sm:border-b-0 sm:border-e border-[#E5DFD1] min-w-[140px]">
+                <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.leaseLength}</label>
+                <select
+                  value={leaseMonths}
+                  onChange={(e) => setLeaseMonths(Number(e.target.value))}
+                  className="bg-transparent outline-none text-sm text-[#1E2A38] w-full mt-0.5"
+                >
+                  {[1, 3, 6, 12, 24].map((m) => <option key={m} value={m}>{m} {t.search.months}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          <div className="px-4 py-2.5 min-w-[120px]">
+            <label className="text-[10.5px] font-bold text-[#1E2A38] uppercase tracking-wide">{t.search.guests}</label>
+            <div className="flex items-center justify-between mt-0.5">
+              <span className="flex items-center gap-1 text-sm text-[#1E2A38]"><Users size={14} className="text-[#8993A0]" /> {guests}</span>
+              <div className="flex gap-1">
+                <button onClick={() => setGuests(Math.max(1, guests - 1))} className="grid h-5 w-5 place-items-center rounded-full border border-[#E5DFD1]"><Minus size={10} /></button>
+                <button onClick={() => setGuests(guests + 1)} className="grid h-5 w-5 place-items-center rounded-full border border-[#E5DFD1]"><Plus size={10} /></button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 p-2.5">
+            <button onClick={onOpenFilters} className="flex items-center gap-1.5 rounded-xl bg-[#F7F5F0] border border-[#E5DFD1] px-3.5 py-2.5 text-[13px] font-medium text-[#1E2A38] whitespace-nowrap">
+              <SlidersHorizontal size={14} /> {t.search.filters}
+            </button>
+            <PrimaryButton onClick={() => setExpanded(false)} className="rounded-xl whitespace-nowrap flex items-center gap-1.5">
+              <Search size={14} /> {t.search.search}
+            </PrimaryButton>
+          </div>
         </div>
       </div>
     </div>
@@ -301,10 +397,12 @@ function CategoryTabs({ active, setActive }) {
 }
 
 /* ------------------------------ Property card ------------------------------- */
-function PropertyCard({ p, lang, isSaved, onToggleSave, onOpen }) {
+function PropertyCard({ p, lang, residencyType, isSaved, onToggleSave, onOpen }) {
   const t = useLang();
   const name = lang === "ar" ? p.nameAr : p.name;
   const location = lang === "ar" ? p.locationAr : p.location;
+  const isLong = residencyType === "long";
+  const displayPrice = isLong ? p.monthlyPrice : p.price;
   return (
     <div>
       <div onClick={() => onOpen(p)} className={`relative h-44 rounded-2xl bg-gradient-to-br ${p.grad} flex items-center justify-center cursor-pointer`}>
@@ -323,8 +421,8 @@ function PropertyCard({ p, lang, isSaved, onToggleSave, onOpen }) {
         </div>
         <p className="text-[12.5px] text-[#5B6472] mt-1 flex items-center gap-1"><MapPin size={11} /> {location}</p>
         <p className="text-sm text-[#1E2A38] mt-1">
-          <span className="font-display font-bold">{fmtMoney(p.price, lang)}</span>{" "}
-          <span className="text-[#8993A0]">/ {t.card.night}</span>
+          <span className="font-display font-bold">{fmtMoney(displayPrice, lang)}</span>{" "}
+          <span className="text-[#8993A0]">/ {isLong ? t.card.month : t.card.night}</span>
         </p>
       </button>
     </div>
@@ -342,9 +440,43 @@ function SkeletonCard() {
   );
 }
 
+const PRICE_BOUNDS = { short: { min: 0, max: 3000, step: 50 }, long: { min: 0, max: 30000, step: 500 } };
+
+/* -------------------------------- Price slider ------------------------------ */
+function PriceRangeSlider({ min, max, step, valueMin, valueMax, onChange }) {
+  const minGap = step;
+  const pctMin = ((valueMin - min) / (max - min)) * 100;
+  const pctMax = ((valueMax - min) / (max - min)) * 100;
+
+  const handleMinChange = (e) => onChange(Math.min(Number(e.target.value), valueMax - minGap), valueMax);
+  const handleMaxChange = (e) => onChange(valueMin, Math.max(Number(e.target.value), valueMin + minGap));
+
+  return (
+    <div className="relative h-[22px]">
+      <style>{`
+        .sakan-range { position: absolute; width: 100%; top: 0; height: 22px; margin: 0;
+          -webkit-appearance: none; appearance: none; background: transparent; pointer-events: none; }
+        .sakan-range::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto;
+          width: 20px; height: 20px; border-radius: 999px; background: #fff;
+          border: 2.5px solid #754437; box-shadow: 0 1px 3px rgba(30,42,56,0.25); cursor: pointer; margin-top: 1px; }
+        .sakan-range::-moz-range-thumb { pointer-events: auto; width: 20px; height: 20px; border-radius: 999px;
+          background: #fff; border: 2.5px solid #754437; box-shadow: 0 1px 3px rgba(30,42,56,0.25); cursor: pointer; }
+        .sakan-range::-webkit-slider-runnable-track { -webkit-appearance: none; background: transparent; }
+        .sakan-range::-moz-range-track { background: transparent; }
+      `}</style>
+      <div className="absolute top-[9px] h-1 left-0 right-0 rounded-full bg-[#E5DFD1]" />
+      <div className="absolute top-[9px] h-1 rounded-full bg-[#754437]" style={{ left: `${pctMin}%`, right: `${100 - pctMax}%` }} />
+      <input type="range" className="sakan-range" min={min} max={max} step={step} value={valueMin} onChange={handleMinChange} />
+      <input type="range" className="sakan-range" min={min} max={max} step={step} value={valueMax} onChange={handleMaxChange} />
+    </div>
+  );
+}
+
 /* -------------------------------- Filters modal ------------------------------ */
-function FiltersModal({ filters, setFilters, onClose, resultCount }) {
+function FiltersModal({ filters, setFilters, onClose, resultCount, residencyType }) {
   const t = useLang();
+  const bounds = PRICE_BOUNDS[residencyType];
+  const suffix = residencyType === "long" ? t.filters.perMonth : t.filters.perNight;
   const toggleType = (type) => setFilters((f) => ({ ...f, types: f.types.includes(type) ? f.types.filter((x) => x !== type) : [...f.types, type] }));
   const toggleAmenity = (a) => setFilters((f) => ({ ...f, amenities: f.amenities.includes(a) ? f.amenities.filter((x) => x !== a) : [...f.amenities, a] }));
 
@@ -358,10 +490,16 @@ function FiltersModal({ filters, setFilters, onClose, resultCount }) {
 
         <div className="p-5">
           <p className="text-[13px] font-bold text-[#1E2A38] mb-2.5">{t.filters.priceRange}</p>
-          <p className="text-[12.5px] text-[#5B6472] mb-2">{filters.maxPrice} {t.filters.perNight}</p>
-          <input type="range" min={0} max={3000} step={50} value={filters.maxPrice}
-            onChange={(e) => setFilters((f) => ({ ...f, maxPrice: Number(e.target.value) }))}
-            className="w-full accent-[#754437]" />
+          <p className="text-[12.5px] text-[#5B6472] mb-4">
+            {filters.minPrice.toLocaleString()} – {filters.maxPrice.toLocaleString()} {suffix}
+          </p>
+          <div className="px-0.5 pb-1">
+            <PriceRangeSlider
+              min={bounds.min} max={bounds.max} step={bounds.step}
+              valueMin={filters.minPrice} valueMax={filters.maxPrice}
+              onChange={(lo, hi) => setFilters((f) => ({ ...f, minPrice: lo, maxPrice: hi }))}
+            />
+          </div>
 
           <p className="text-[13px] font-bold text-[#1E2A38] mt-6 mb-2.5">{t.filters.propertyType}</p>
           <div className="flex flex-col gap-2">
@@ -389,7 +527,7 @@ function FiltersModal({ filters, setFilters, onClose, resultCount }) {
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-[#E5DFD1] p-4 flex items-center justify-between gap-3">
-          <button onClick={() => setFilters({ maxPrice: 3000, types: [], amenities: [] })} className="text-[13px] font-semibold text-[#1E2A38] underline">
+          <button onClick={() => setFilters({ minPrice: bounds.min, maxPrice: bounds.max, types: [], amenities: [] })} className="text-[13px] font-semibold text-[#1E2A38] underline">
             {t.filters.clear}
           </button>
           <PrimaryButton onClick={onClose} className="flex-1">{t.filters.show} {resultCount}+ {t.filters.stays}</PrimaryButton>
@@ -399,46 +537,105 @@ function FiltersModal({ filters, setFilters, onClose, resultCount }) {
   );
 }
 
+/* -------------------------------- Filter chips ------------------------------ */
+function FilterChips({ filters, setFilters, residencyType }) {
+  const t = useLang();
+  const bounds = PRICE_BOUNDS[residencyType];
+
+  const chips = [];
+  if (filters.minPrice > bounds.min || filters.maxPrice < bounds.max) {
+    chips.push({
+      key: "price",
+      label: `${filters.minPrice.toLocaleString()} – ${filters.maxPrice.toLocaleString()}`,
+      onRemove: () => setFilters((f) => ({ ...f, minPrice: bounds.min, maxPrice: bounds.max })),
+    });
+  }
+  filters.types.forEach((type) =>
+    chips.push({ key: `type-${type}`, label: t.filters[type], onRemove: () => setFilters((f) => ({ ...f, types: f.types.filter((x) => x !== type) })) })
+  );
+  filters.amenities.forEach((a) =>
+    chips.push({ key: `amenity-${a}`, label: t.filters[a], onRemove: () => setFilters((f) => ({ ...f, amenities: f.amenities.filter((x) => x !== a) })) })
+  );
+
+  if (chips.length === 0) return null;
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-8 mt-3 flex gap-2 overflow-x-auto pb-1">
+      {chips.map((chip) => (
+        <span
+          key={chip.key}
+          className="flex items-center gap-1.5 shrink-0 rounded-full border border-[#754437] bg-[#F3EFE6] text-[#754437] text-[12.5px] font-medium px-3 py-1.5 whitespace-nowrap"
+        >
+          {chip.label}
+          <button onClick={chip.onRemove} className="grid place-items-center">
+            <X size={12} />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /* --------------------------------- Home view -------------------------------- */
 function HomeView({ lang, favorites, toggleFavorite, onOpenProperty }) {
+  const [residencyType, setResidencyType] = useState("short");
   const [query, setQuery] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
+  const [moveIn, setMoveIn] = useState("");
+  const [leaseMonths, setLeaseMonths] = useState(3);
   const [guests, setGuests] = useState(1);
   const [category, setCategory] = useState("all");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useState({ maxPrice: 3000, types: [], amenities: [] });
+  const [filtersByType, setFiltersByType] = useState({
+    short: { minPrice: 0, maxPrice: 3000, types: [], amenities: [] },
+    long: { minPrice: 0, maxPrice: 30000, types: [], amenities: [] },
+  });
+  const filters = filtersByType[residencyType];
+  const setFilters = (updater) =>
+    setFiltersByType((prev) => ({
+      ...prev,
+      [residencyType]: typeof updater === "function" ? updater(prev[residencyType]) : updater,
+    }));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     const timer = setTimeout(() => setLoading(false), 500);
     return () => clearTimeout(timer);
-  }, [category, query, filters]);
+  }, [category, query, filters, residencyType]);
 
   const filtered = useMemo(() => {
     return LISTINGS.filter((p) => {
+      if (residencyType === "long" && !p.longTerm) return false;
       if (category !== "all" && p.type !== category) return false;
       const name = lang === "ar" ? p.nameAr : p.name;
       const loc = lang === "ar" ? p.locationAr : p.location;
       if (query && !name.includes(query) && !loc.includes(query)) return false;
-      if (p.price > filters.maxPrice) return false;
+      const relevantPrice = residencyType === "long" ? p.monthlyPrice : p.price;
+      if (relevantPrice > filters.maxPrice || relevantPrice < filters.minPrice) return false;
       if (filters.amenities.length && !filters.amenities.every((a) => p.amenities.includes(a))) return false;
       if (guests > p.maxGuests) return false;
       return true;
     });
-  }, [category, query, filters, guests, lang]);
+  }, [category, query, filters, guests, lang, residencyType]);
 
   return (
     <div className="pb-16">
-      <SearchBar query={query} setQuery={setQuery} checkIn={checkIn} setCheckIn={setCheckIn} checkOut={checkOut} setCheckOut={setCheckOut} guests={guests} setGuests={setGuests} onOpenFilters={() => setFiltersOpen(true)} />
+      <SearchBar
+        residencyType={residencyType} setResidencyType={setResidencyType}
+        query={query} setQuery={setQuery} checkIn={checkIn} setCheckIn={setCheckIn} checkOut={checkOut} setCheckOut={setCheckOut}
+        moveIn={moveIn} setMoveIn={setMoveIn} leaseMonths={leaseMonths} setLeaseMonths={setLeaseMonths}
+        guests={guests} setGuests={setGuests} onOpenFilters={() => setFiltersOpen(true)}
+      />
+      <FilterChips filters={filters} setFilters={setFilters} residencyType={residencyType} />
       <CategoryTabs active={category} setActive={setCategory} />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-8 mt-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {loading
             ? Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            : filtered.map((p) => <PropertyCard key={p.id} p={p} lang={lang} isSaved={favorites.has(p.id)} onToggleSave={toggleFavorite} onOpen={onOpenProperty} />)}
+            : filtered.map((p) => <PropertyCard key={p.id} p={p} lang={lang} residencyType={residencyType} isSaved={favorites.has(p.id)} onToggleSave={toggleFavorite} onOpen={onOpenProperty} />)}
         </div>
         {!loading && filtered.length === 0 && (
           <div className="text-center py-16 text-[#5B6472]">
@@ -448,7 +645,7 @@ function HomeView({ lang, favorites, toggleFavorite, onOpenProperty }) {
         )}
       </div>
 
-      {filtersOpen && <FiltersModal filters={filters} setFilters={setFilters} onClose={() => setFiltersOpen(false)} resultCount={filtered.length} />}
+      {filtersOpen && <FiltersModal filters={filters} setFilters={setFilters} onClose={() => setFiltersOpen(false)} resultCount={filtered.length} residencyType={residencyType} />}
     </div>
   );
 }
@@ -611,6 +808,40 @@ function PropertyDetails({ p, lang, isSaved, onToggleSave, onBack, signedIn, req
 function SignInModal({ onClose, onSuccess }) {
   const t = useLang();
   const [mode, setMode] = useState("signin");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+
+  const handleSubmit = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) throw signUpError;
+        if (data.user) {
+          await supabase.from("profiles").insert({ id: data.user.id, full_name: fullName });
+        }
+        if (data.session) {
+          onSuccess();
+        } else {
+          setNeedsConfirmation(true);
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        onSuccess();
+      }
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
       <div className="w-full max-w-sm rounded-2xl bg-white p-6" onClick={(e) => e.stopPropagation()}>
@@ -619,17 +850,31 @@ function SignInModal({ onClose, onSuccess }) {
           <button onClick={onClose}><X size={18} className="text-[#5B6472]" /></button>
         </div>
         <p className="text-sm text-[#5B6472] mb-5">{t.signIn.sub}</p>
-        <div className="space-y-3">
-          {mode === "signup" && <input placeholder={t.signIn.name} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />}
-          <input placeholder={t.signIn.email} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
-          <input type="password" placeholder={t.signIn.password} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
-        </div>
-        <button onClick={onSuccess} className="mt-5 w-full rounded-lg bg-[#754437] py-2.5 text-sm font-medium text-white hover:bg-[#5E362B] transition-colors">
-          {mode === "signup" ? t.signIn.createSubmit : t.signIn.submit}
-        </button>
-        <button onClick={() => setMode(mode === "signup" ? "signin" : "signup")} className="mt-3 w-full text-center text-xs text-[#754437] hover:underline">
-          {mode === "signup" ? t.signIn.switchBack : t.signIn.switch}
-        </button>
+
+        {needsConfirmation ? (
+          <div className="text-sm text-[#1E2A38] bg-[#F3EFE6] border border-[#E5DFD1] rounded-lg p-4">
+            Check <span className="font-semibold">{email}</span> for a confirmation link, then come back and sign in.
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {mode === "signup" && <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.signIn.name} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />}
+              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t.signIn.email} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t.signIn.password} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
+            </div>
+            {error && <p className="text-xs text-[#E8590C] mt-2.5">{error}</p>}
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !email || !password}
+              className="mt-5 w-full rounded-lg bg-[#754437] py-2.5 text-sm font-medium text-white hover:bg-[#5E362B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? "Please wait…" : (mode === "signup" ? t.signIn.createSubmit : t.signIn.submit)}
+            </button>
+            <button onClick={() => { setMode(mode === "signup" ? "signin" : "signup"); setError(""); }} className="mt-3 w-full text-center text-xs text-[#754437] hover:underline">
+              {mode === "signup" ? t.signIn.switchBack : t.signIn.switch}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -775,6 +1020,12 @@ export default function TravelerApp({ onSwitchToOwner }) {
     document.documentElement.dir = t.dir;
     document.documentElement.lang = lang;
   }, [lang, t.dir]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setSignedIn(true);
+    });
+  }, []);
 
   const toggleFavorite = (id) => {
     if (!signedIn) {

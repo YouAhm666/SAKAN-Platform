@@ -3,6 +3,7 @@ import { LogIn, X, User, Building2, MapPinned } from "lucide-react";
 import OwnerApp from "./App.jsx";
 import TravelerApp from "./TravelerApp.jsx";
 import { LOGO_EN_DARK } from "./brand.js";
+import { supabase } from "./supabaseClient.js";
 
 /* ============================================================================
    SHELL — one app, one login system, two experiences.
@@ -74,6 +75,43 @@ function RolePicker({ onPick }) {
 }
 
 function OwnerSignIn({ onBack, onSuccess }) {
+  const [mode, setMode] = useState("signin"); // signin | signup
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+
+  const handleSubmit = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      if (mode === "signup") {
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) throw signUpError;
+        if (data.user) {
+          // Best-effort profile row; safe to ignore failure here since it
+          // doesn't block auth itself, just personalization later.
+          await supabase.from("profiles").insert({ id: data.user.id, full_name: fullName });
+        }
+        if (data.session) {
+          onSuccess();
+        } else {
+          setNeedsConfirmation(true);
+        }
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        onSuccess();
+      }
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#28374A] flex items-center justify-center p-6"
       style={{ fontFamily: "'Inter', ui-sans-serif, system-ui" }}>
@@ -81,19 +119,44 @@ function OwnerSignIn({ onBack, onSuccess }) {
       <div className="w-full max-w-sm rounded-2xl bg-white p-7">
         <button onClick={onBack} className="text-xs text-[#5B6472] hover:text-[#1E2A38] mb-4">{COPY.signIn.back}</button>
         <h1 className="text-xl text-[#1E2A38] mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          {COPY.signIn.title}
+          {mode === "signup" ? "Create your owner account" : COPY.signIn.title}
         </h1>
         <p className="text-sm text-[#5B6472] mb-6">{COPY.signIn.sub}</p>
-        <div className="space-y-3">
-          <input placeholder={COPY.signIn.email} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
-          <input type="password" placeholder={COPY.signIn.password} className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
-        </div>
-        <button
-          onClick={onSuccess}
-          className="mt-5 w-full flex items-center justify-center gap-2 rounded-lg bg-[#754437] py-2.5 text-sm font-medium text-white hover:bg-[#5E362B] transition-colors"
-        >
-          <LogIn size={15} /> {COPY.signIn.submit}
-        </button>
+
+        {needsConfirmation ? (
+          <div className="text-sm text-[#1E2A38] bg-[#F3EFE6] border border-[#E5DFD1] rounded-lg p-4">
+            Check <span className="font-semibold">{email}</span> for a confirmation link, then come back and sign in.
+          </div>
+        ) : (
+          <>
+            <div className="space-y-3">
+              {mode === "signup" && (
+                <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name"
+                  className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
+              )}
+              <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder={COPY.signIn.email}
+                className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={COPY.signIn.password}
+                className="w-full rounded-lg border border-[#E5DFD1] px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#7C7340]/40" />
+            </div>
+
+            {error && <p className="text-xs text-[#E8590C] mt-2.5">{error}</p>}
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !email || !password}
+              className="mt-5 w-full flex items-center justify-center gap-2 rounded-lg bg-[#754437] py-2.5 text-sm font-medium text-white hover:bg-[#5E362B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <LogIn size={15} /> {loading ? "Please wait…" : (mode === "signup" ? "Create account" : COPY.signIn.submit)}
+            </button>
+            <button
+              onClick={() => { setMode(mode === "signup" ? "signin" : "signup"); setError(""); }}
+              className="mt-3 w-full text-center text-xs text-[#754437] hover:underline"
+            >
+              {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an owner account"}
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -116,14 +179,38 @@ function SwitchBar({ roleLabel, onExit }) {
 export default function Shell() {
   const [role, setRole] = useState(null); // null | 'traveler' | 'owner'
   const [ownerAuthed, setOwnerAuthed] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(false);
 
-  const exit = () => {
+  const chooseOwner = async () => {
+    setRole("owner");
+    setCheckingSession(true);
+    const { data } = await supabase.auth.getSession();
+    setOwnerAuthed(!!data.session);
+    setCheckingSession(false);
+  };
+
+  const handlePick = (picked) => {
+    if (picked === "owner") {
+      chooseOwner();
+    } else {
+      setRole(picked);
+    }
+  };
+
+  const exit = async () => {
+    if (role === "owner") {
+      await supabase.auth.signOut();
+    }
     setRole(null);
     setOwnerAuthed(false);
   };
 
   if (role === null) {
-    return <RolePicker onPick={setRole} />;
+    return <RolePicker onPick={handlePick} />;
+  }
+
+  if (role === "owner" && checkingSession) {
+    return <div className="min-h-screen w-full bg-[#28374A]" />;
   }
 
   if (role === "owner" && !ownerAuthed) {
@@ -143,7 +230,7 @@ export default function Shell() {
   return (
     <div>
       <SwitchBar roleLabel="Traveler" onExit={exit} />
-      <TravelerApp onSwitchToOwner={() => setRole("owner")} />
+      <TravelerApp onSwitchToOwner={() => handlePick("owner")} />
     </div>
   );
 }
