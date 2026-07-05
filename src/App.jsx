@@ -15,6 +15,7 @@ import {
    self-contained file. EN lockup reads icon-first (LTR); AR lockup reads
    icon-last (RTL), matching each language's natural reading direction. */
 import { LOGO_EN, LOGO_AR, LOGO_EN_DARK, LOGO_AR_DARK } from "./brand.js";
+import { fetchOwnerListings, createListing } from "./supabaseData.js";
 
 /* ============================================================================
    DESIGN TOKENS (see inline <style> block for font imports)
@@ -177,7 +178,9 @@ const DICT = {
     },
     common: {
       unit: "Unit", perNight: "/ night", perMonth: "/ month", nights: "nights",
-      showMore: "Show more", area: "Area",
+      showMore: "Show more", area: "Area", loading: "Loading…",
+      noListingsYet: "No properties yet", noListingsSub: "Add your first property in Setup to see it here.",
+      goToSetup: "Go to Setup",
     },
   },
   ar: {
@@ -312,7 +315,9 @@ const DICT = {
     },
     common: {
       unit: "وحدة", perNight: "/ ليلة", perMonth: "/ شهر", nights: "ليالٍ",
-      showMore: "عرض المزيد", area: "المساحة",
+      showMore: "عرض المزيد", area: "المساحة", loading: "جارٍ التحميل…",
+      noListingsYet: "لا توجد عقارات بعد", noListingsSub: "أضف أول عقار في صفحة الإعداد لتراه هنا.",
+      goToSetup: "الذهاب إلى الإعداد",
     },
   },
 };
@@ -870,11 +875,25 @@ function AvailabilityRow({ p, lang, mode, setMode, manualOpen, toggleManual, hou
   );
 }
 
-function AvailabilityView({ lang }) {
+function AvailabilityView({ lang, listings, loading }) {
   const t = useLang();
-  const [modes, setModes] = useState(() => Object.fromEntries(PROPERTIES.map((p) => [p.id, "auto"])));
-  const [manualOpen, setManualOpen] = useState(() => Object.fromEntries(PROPERTIES.map((p) => [p.id, true])));
-  const housekeeping = useMemo(() => Object.fromEntries(PROPERTIES.map((p) => [p.id, p.status])), []);
+  const [modes, setModes] = useState({});
+  const [manualOpen, setManualOpen] = useState({});
+
+  useEffect(() => {
+    setModes((prev) => {
+      const next = { ...prev };
+      listings.forEach((p) => { if (!(p.id in next)) next[p.id] = "auto"; });
+      return next;
+    });
+    setManualOpen((prev) => {
+      const next = { ...prev };
+      listings.forEach((p) => { if (!(p.id in next)) next[p.id] = true; });
+      return next;
+    });
+  }, [listings]);
+
+  const housekeeping = useMemo(() => Object.fromEntries(listings.map((p) => [p.id, p.status])), [listings]);
 
   const setMode = (id, m) => setModes((prev) => ({ ...prev, [id]: m }));
   const toggleManual = (id) => setManualOpen((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -882,13 +901,13 @@ function AvailabilityView({ lang }) {
 
   const groups = useMemo(() => {
     const map = new Map();
-    PROPERTIES.forEach((p) => {
+    listings.forEach((p) => {
       const key = p.name.includes("—") ? p.name.split("—")[0].trim() : p.name;
       if (!map.has(key)) map.set(key, []);
       map.get(key).push(p);
     });
     return Array.from(map.entries());
-  }, []);
+  }, [listings]);
 
   const setGroup = (units, open) => {
     setModes((prev) => {
@@ -919,55 +938,64 @@ function AvailabilityView({ lang }) {
         </span>
       </div>
 
-      <div className="space-y-4">
-        {groups.map(([key, units]) => {
-          const openCount = units.filter(isUnitOpen).length;
-          const allOpen = openCount === units.length;
-          const rawGroupLabel = lang === "ar" ? units[0].nameAr : key;
-          const groupLabel = (lang === "ar" && rawGroupLabel.includes("—") ? rawGroupLabel.split("—")[0] : rawGroupLabel).trim();
-          return (
-            <div key={key} className="rounded-2xl border border-[#E5DFD1] bg-white shadow-[0_1px_2px_rgba(16,14,28,0.04)] p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="font-display text-base text-[#1E2A38]">{groupLabel}</h3>
+      {loading ? (
+        <div className="rounded-2xl border border-[#E5DFD1] bg-white p-8 text-center text-sm text-[#5B6472]">{t.common.loading}</div>
+      ) : listings.length === 0 ? (
+        <div className="rounded-2xl border border-[#E5DFD1] bg-white p-8 text-center">
+          <p className="text-sm font-semibold text-[#1E2A38]">{t.common.noListingsYet}</p>
+          <p className="text-xs text-[#5B6472] mt-1">{t.common.noListingsSub}</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {groups.map(([key, units]) => {
+            const openCount = units.filter(isUnitOpen).length;
+            const allOpen = openCount === units.length;
+            const rawGroupLabel = lang === "ar" ? units[0].nameAr : key;
+            const groupLabel = (lang === "ar" && rawGroupLabel.includes("—") ? rawGroupLabel.split("—")[0] : rawGroupLabel).trim();
+            return (
+              <div key={key} className="rounded-2xl border border-[#E5DFD1] bg-white shadow-[0_1px_2px_rgba(16,14,28,0.04)] p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                  <div>
+                    <h3 className="font-display text-base text-[#1E2A38]">{groupLabel}</h3>
+                    {units.length > 1 && (
+                      <p className="text-[11px] text-[#5B6472] mt-0.5">
+                        {allOpen ? t.availability.allOpen : t.availability.unitsClosed.replace("{n}", units.length - openCount).replace("{t}", units.length)}
+                      </p>
+                    )}
+                  </div>
                   {units.length > 1 && (
-                    <p className="text-[11px] text-[#5B6472] mt-0.5">
-                      {allOpen ? t.availability.allOpen : t.availability.unitsClosed.replace("{n}", units.length - openCount).replace("{t}", units.length)}
-                    </p>
+                    <button
+                      onClick={() => setGroup(units, !allOpen)}
+                      className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-medium transition-colors ${
+                        allOpen
+                          ? "border-[#B7B29C] text-[#55523F] hover:bg-[#E9E6DC]"
+                          : "border-[#E5DFD1] text-[#754437] hover:bg-[#F3EFE6]"
+                      }`}
+                    >
+                      {allOpen ? <DoorClosed size={14} /> : <DoorOpen size={14} />}
+                      {allOpen ? t.availability.closeProperty : t.availability.openProperty}
+                    </button>
                   )}
                 </div>
-                {units.length > 1 && (
-                  <button
-                    onClick={() => setGroup(units, !allOpen)}
-                    className={`flex items-center gap-1.5 rounded-lg border px-3.5 py-2 text-xs font-medium transition-colors ${
-                      allOpen
-                        ? "border-[#B7B29C] text-[#55523F] hover:bg-[#E9E6DC]"
-                        : "border-[#E5DFD1] text-[#754437] hover:bg-[#F3EFE6]"
-                    }`}
-                  >
-                    {allOpen ? <DoorClosed size={14} /> : <DoorOpen size={14} />}
-                    {allOpen ? t.availability.closeProperty : t.availability.openProperty}
-                  </button>
-                )}
+                <div className="space-y-2.5">
+                  {units.map((p) => (
+                    <AvailabilityRow
+                      key={p.id}
+                      p={p}
+                      lang={lang}
+                      mode={modes[p.id]}
+                      setMode={(m) => setMode(p.id, m)}
+                      manualOpen={manualOpen[p.id]}
+                      toggleManual={() => toggleManual(p.id)}
+                      housekeeping={housekeeping[p.id]}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2.5">
-                {units.map((p) => (
-                  <AvailabilityRow
-                    key={p.id}
-                    p={p}
-                    lang={lang}
-                    mode={modes[p.id]}
-                    setMode={(m) => setMode(p.id, m)}
-                    manualOpen={manualOpen[p.id]}
-                    toggleManual={() => toggleManual(p.id)}
-                    housekeeping={housekeeping[p.id]}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -983,13 +1011,52 @@ function Field({ label, children }) {
 }
 const inputCls = "w-full rounded-lg border border-[#E5DFD1] bg-white px-3.5 py-2.5 text-sm text-[#1E2A38] outline-none focus:ring-2 focus:ring-[#7C7340]/40 focus:border-[#7C7340]";
 
-function SetupView({ lang }) {
+function SetupView({ lang, listings, loading, error, onCreated }) {
   const t = useLang();
+  const [name, setName] = useState("");
+  const [nameAr, setNameAr] = useState("");
   const [propType, setPropType] = useState("Hotel");
   const [residency, setResidency] = useState("short");
   const [status, setStatus] = useState("clean");
+  const [area, setArea] = useState(62);
+  const [location, setLocation] = useState("");
+  const [rateShort, setRateShort] = useState(420);
+  const [rateLong, setRateLong] = useState(18200);
+  const [currency, setCurrency] = useState("AED");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saved, setSaved] = useState(false);
 
   const label = (obj, arObj, val) => (lang === "ar" ? arObj[val] : val);
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      setSaveError(lang === "ar" ? "الاسم مطلوب" : "Name is required");
+      return;
+    }
+    setSaving(true);
+    setSaveError("");
+    setSaved(false);
+    try {
+      await createListing({
+        name: name.trim(),
+        nameAr: nameAr.trim(),
+        propertyType: propType,
+        area: Number(area) || null,
+        address: location.trim(),
+        basePrice: residency === "short" ? Number(rateShort) : Number(rateLong),
+        currency,
+        initialStatus: status,
+      });
+      setSaved(true);
+      setName(""); setNameAr(""); setLocation("");
+      onCreated?.();
+    } catch (err) {
+      setSaveError(err.message || (lang === "ar" ? "حدث خطأ ما" : "Something went wrong"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-5">
@@ -999,8 +1066,12 @@ function SetupView({ lang }) {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <Field label={t.setup.name}>
-            <input className={inputCls} placeholder="Sakan Bay Hotel — Room 512" />
+            <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Sakan Bay Hotel — Room 512" />
           </Field>
+          <Field label={lang === "ar" ? "الاسم (عربي)" : "Name (Arabic)"}>
+            <input value={nameAr} onChange={(e) => setNameAr(e.target.value)} className={inputCls} placeholder="فندق سكن باي — غرفة 512" dir="rtl" />
+          </Field>
+
           <Field label={t.setup.propertyType}>
             <select className={inputCls} value={propType} onChange={(e) => setPropType(e.target.value)}>
               {PROPERTY_TYPES.map((pt) => (
@@ -1008,48 +1079,23 @@ function SetupView({ lang }) {
               ))}
             </select>
           </Field>
-
-          <Field label={t.setup.tierLayout}>
-            <select className={inputCls}>
-              {TIERS.map((x) => <option key={x} value={x}>{label(null, TIERS_AR, x)}</option>)}
-            </select>
-          </Field>
-          <Field label={t.setup.occupancy}>
-            <select className={inputCls}>
-              {OCCUPANCY.map((x) => <option key={x} value={x}>{label(null, OCCUPANCY_AR, x)}</option>)}
-            </select>
-          </Field>
-
-          <Field label={t.setup.specialty}>
-            <select className={inputCls}>
-              <option value="">—</option>
-              {SPECIALTY.map((x) => <option key={x} value={x}>{label(null, SPECIALTY_AR, x)}</option>)}
-            </select>
-          </Field>
           <Field label={t.setup.area}>
             <div className="relative">
               <Ruler size={15} className="absolute top-1/2 -translate-y-1/2 start-3 text-[#8993A0]" />
-              <input type="number" defaultValue={62} className={`${inputCls} ps-9`} />
+              <input type="number" value={area} onChange={(e) => setArea(e.target.value)} className={`${inputCls} ps-9`} />
             </div>
           </Field>
 
           <Field label={t.setup.location}>
             <div className="relative">
               <MapPin size={15} className="absolute top-1/2 -translate-y-1/2 start-3 text-[#8993A0]" />
-              <input className={`${inputCls} ps-9`} placeholder="Jumeirah Coast, Dubai" />
+              <input value={location} onChange={(e) => setLocation(e.target.value)} className={`${inputCls} ps-9`} placeholder="Jumeirah Coast, Dubai" />
             </div>
           </Field>
-          <Field label={t.setup.hostContact}>
-            <div className="relative">
-              <Phone size={15} className="absolute top-1/2 -translate-y-1/2 start-3 text-[#8993A0]" />
-              <input className={`${inputCls} ps-9`} placeholder="+971 50 000 0000" />
-            </div>
-          </Field>
-        </div>
-
-        <div className="mt-5">
-          <Field label={t.setup.amenities}>
-            <input className={inputCls} placeholder="Pool, Sea View, Kitchenette, Balcony…" />
+          <Field label={lang === "ar" ? "العملة" : "Currency"}>
+            <select className={inputCls} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {["AED", "SAR", "USD", "EGP"].map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
           </Field>
         </div>
 
@@ -1078,31 +1124,10 @@ function SetupView({ lang }) {
 
         <div className="mt-5 grid sm:grid-cols-2 gap-4">
           {residency === "short" ? (
-            <>
-              <Field label={t.setup.rateShort}><input type="number" defaultValue={420} className={inputCls} /></Field>
-              <Field label={t.setup.overbooking}><input type="number" defaultValue={2} className={inputCls} /></Field>
-            </>
+            <Field label={t.setup.rateShort}><input type="number" value={rateShort} onChange={(e) => setRateShort(e.target.value)} className={inputCls} /></Field>
           ) : (
-            <>
-              <Field label={t.setup.rateLong}><input type="number" defaultValue={18200} className={inputCls} /></Field>
-              <Field label={t.setup.leaseTerm}><input type="number" defaultValue={6} className={inputCls} /></Field>
-            </>
+            <Field label={t.setup.rateLong}><input type="number" value={rateLong} onChange={(e) => setRateLong(e.target.value)} className={inputCls} /></Field>
           )}
-        </div>
-
-        <div className="mt-6 grid sm:grid-cols-2 gap-4">
-          <div>
-            <span className="block text-xs font-medium text-[#4F5866] mb-1.5">{t.setup.logo}</span>
-            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5DFD1] py-6 text-[#8993A0] hover:border-[#7C7340] transition-colors cursor-pointer">
-              <Upload size={16} /> <span className="text-xs">{t.setup.dropHint}</span>
-            </div>
-          </div>
-          <div>
-            <span className="block text-xs font-medium text-[#4F5866] mb-1.5">{t.setup.gallery}</span>
-            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#E5DFD1] py-6 text-[#8993A0] hover:border-[#7C7340] transition-colors cursor-pointer">
-              <ImagePlus size={16} /> <span className="text-xs">{t.setup.dropHint}</span>
-            </div>
-          </div>
         </div>
 
         <div className="mt-5 flex items-start gap-2 rounded-lg bg-[#F3EFE6] border border-[#E4DAC8] px-3.5 py-3 text-xs text-[#28374A]">
@@ -1110,28 +1135,43 @@ function SetupView({ lang }) {
           {t.setup.syncNote}
         </div>
 
-        <button className="mt-6 w-full sm:w-auto rounded-lg bg-[#754437] px-6 py-3 text-sm font-medium text-white shadow-[0_8px_20px_-6px_rgba(91,59,255,0.55)] hover:bg-[#5E362B] hover:shadow-[0_10px_24px_-6px_rgba(91,59,255,0.65)] transition-all">
-          {t.setup.save}
+        {saveError && <p className="mt-3 text-xs text-[#E8590C]">{saveError}</p>}
+        {saved && <p className="mt-3 text-xs text-[#0F9D58]">{lang === "ar" ? "تم الحفظ بنجاح." : "Saved successfully."}</p>}
+
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="mt-6 w-full sm:w-auto rounded-lg bg-[#754437] px-6 py-3 text-sm font-medium text-white shadow-[0_8px_20px_-6px_rgba(91,59,255,0.55)] hover:bg-[#5E362B] hover:shadow-[0_10px_24px_-6px_rgba(91,59,255,0.65)] disabled:opacity-50 transition-all"
+        >
+          {saving ? t.common.loading : t.setup.save}
         </button>
       </div>
 
       <div className="rounded-2xl border border-[#E5DFD1] bg-white shadow-[0_1px_2px_rgba(16,14,28,0.04)] p-5 h-fit">
         <h3 className="font-display text-base text-[#1E2A38] mb-3">{t.setup.currentListings}</h3>
-        <div className="space-y-2.5 max-h-[640px] overflow-y-auto">
-          {PROPERTIES.map((p) => (
-            <div key={p.id} className="relative overflow-hidden rounded-lg border border-[#E5DFD1] px-3.5 py-3">
-              <KeyTab status={p.status} />
-              <p className="text-xs font-semibold text-[#1E2A38] truncate pe-2">{lang === "ar" ? p.nameAr : p.name}</p>
-              <p className="text-[11px] text-[#5B6472] mt-0.5">{label(null, PROPERTY_TYPES_AR, p.type)} · {p.area} {t.common.area === "Area" ? "m²" : "م²"}</p>
-              <div className="mt-1.5 flex items-center justify-between">
-                <StatusBadge status={p.status} />
-                <span className="text-xs font-medium text-[#754437] tabular-nums">
-                  {fmtMoney(p.price, p.currency, lang)}{p.residency === "short" ? t.common.perNight : t.common.perMonth}
-                </span>
+        {loading ? (
+          <p className="text-xs text-[#5B6472]">{t.common.loading}</p>
+        ) : error ? (
+          <p className="text-xs text-[#E8590C]">{error}</p>
+        ) : listings.length === 0 ? (
+          <p className="text-xs text-[#5B6472]">{t.common.noListingsYet}</p>
+        ) : (
+          <div className="space-y-2.5 max-h-[640px] overflow-y-auto">
+            {listings.map((p) => (
+              <div key={p.id} className="relative overflow-hidden rounded-lg border border-[#E5DFD1] px-3.5 py-3">
+                <KeyTab status={p.status} />
+                <p className="text-xs font-semibold text-[#1E2A38] truncate pe-2">{lang === "ar" ? p.nameAr : p.name}</p>
+                <p className="text-[11px] text-[#5B6472] mt-0.5">{p.area ? `${p.area} ${lang === "ar" ? "م²" : "m²"}` : p.type}</p>
+                <div className="mt-1.5 flex items-center justify-between">
+                  <StatusBadge status={p.status} />
+                  <span className="text-xs font-medium text-[#754437] tabular-nums">
+                    {fmtMoney(p.price, p.currency, lang)}{p.residency === "short" ? t.common.perNight : t.common.perMonth}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1348,6 +1388,27 @@ export default function App() {
   const [view, setView] = useState("overview");
   const t = DICT[lang];
 
+  const [listings, setListings] = useState([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState("");
+
+  const refetchListings = async () => {
+    setListingsLoading(true);
+    setListingsError("");
+    try {
+      const data = await fetchOwnerListings();
+      setListings(data);
+    } catch (err) {
+      setListingsError(err.message || "Couldn't load your properties.");
+    } finally {
+      setListingsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    refetchListings();
+  }, []);
+
   useEffect(() => {
     document.documentElement.dir = t.dir;
     document.documentElement.lang = lang;
@@ -1356,8 +1417,8 @@ export default function App() {
   const views = {
     overview: <OverviewView lang={lang} />,
     timeline: <TimelineView lang={lang} />,
-    availability: <AvailabilityView lang={lang} />,
-    setup: <SetupView lang={lang} />,
+    availability: <AvailabilityView lang={lang} listings={listings} loading={listingsLoading} />,
+    setup: <SetupView lang={lang} listings={listings} loading={listingsLoading} error={listingsError} onCreated={refetchListings} />,
     financials: <FinancialsView lang={lang} />,
     reviews: <ReviewsView lang={lang} />,
   };
